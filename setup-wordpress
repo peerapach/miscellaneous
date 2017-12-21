@@ -1,0 +1,120 @@
+#!/bin/bash -e
+
+usage() {
+cat <<EOF
+$0 [-h | -d | -b] [-n NAME | -e DB Name] [-u MySQL user] [-t MySQL host] FQDN
+
+Creates by default a Wordpress mysql configuration depending on required fully
+qualified domain name(FQDN).
+
+Options:
+    -n name for the wordpress site; see also -e below
+    -h help
+    -d destroy and purge
+    -b backup
+    -u mysql username, will require password
+    -t mysql server hostname, if unset localhost will be used
+    -e existing empty mysql database name; will replace -n
+
+Example: You want your blog to be served from http://blog.example.com
+         for user 'wordpress'.
+
+Then run:
+sudo bash setup-wordpress -n wordpress blog.example.com
+
+EOF
+}
+
+CONFIG_FILE=/var/www/wordpress/wp-config.php
+
+if [ ! $NAME ] ; then
+    NAME=$(echo $DOMAIN | sed 's,\.,,g;s,-,,g')
+    echo Constructed database name and user: $NAME from $DOMAIN
+fi
+
+if [ ${#NAME} -gt 16 ]; then
+    echo "$NAME is longer than MySQL's limit of 16 characters. Please specify a shorter one."
+    exit 1
+fi
+
+if [ ! $DB_HOST ]; then
+    DB_HOST="localhost"
+fi
+
+while getopts "n:hbdu:t:e:-" opt ; do
+    case "$opt" in
+    h) usage ; exit 0 ;;
+    b) BACKUP=1 ;;
+    d) DESTROY=1 ;;
+    n) NAME="$OPTARG" ;;
+    u) MYSQLUSER="$OPTARG" ;;
+    t) DB_HOST="$OPTARG" ;;
+    e) DB_DB="$OPTARG" ;;
+    -) break ;;
+    *) usage 1>&2 ; exit 1 ;;
+    esac
+done
+shift $(($OPTIND - 1))
+
+if [ "$(id -u)" != "0" ]
+then
+  echo "You must be root to use this script."
+  exit 1
+fi
+
+DOMAIN=$(echo $1 | tr "[:upper:]" "[:lower:]")
+
+download_wordpress() {
+    curl -s https://wordpress.org/latest.tar.gz |tar -xvzf - -C /var/www/
+    chown -R www-data:www-data /var/www/wordpress
+}
+
+config_wordpress_mysql() {
+    # Generate a random password without Perl
+    MATRIX="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+    if [ ! $MYSQLUSER ]; then
+        LENGTH="8"
+        while [ "${n:=1}" -le "$LENGTH" ]
+        do
+            DB_PASSWORD="$DB_PASSWORD${MATRIX:$(($RANDOM%${#MATRIX})):1}"
+            let n+=1
+        done
+        DB_USER=$NAME
+    else
+        DB_USER=$MYSQLUSER
+        echo "Enter MySQL password for user $DB_USER."
+        read -p "> " DB_PASSWORD
+    fi
+
+    LENGTH="50"
+    while [ "${n:=1}" -le "$LENGTH" ]
+    do
+        SECRET_KEY="$SECRET_KEY${MATRIX:$(($RANDOM%${#MATRIX})):1}"
+        let n+=1
+    done
+
+    if [ ! $DB_DB ]; then
+        DB_NAME=$NAME
+    else
+        DB_NAME=$DB_DB
+    fi
+
+    # Write the config file for wordpress
+    (umask 0027;
+    cat > $CONFIG_FILE << EOF
+<?php
+# Created by $0 $@
+define('DB_NAME', '$DB_NAME');
+define('DB_USER', '$DB_USER');
+define('DB_PASSWORD', '$DB_PASSWORD');
+define('DB_HOST', '$DB_HOST');
+define('SECRET_KEY', '$SECRET_KEY');
+?>
+EOF
+    )
+    chgrp www-data "${CONFIG_FILE}"
+    echo $CONFIG_FILE written
+}
+
+download_wordpress
+config_wordpress_mysql
