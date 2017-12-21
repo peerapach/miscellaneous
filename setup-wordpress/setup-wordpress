@@ -60,7 +60,7 @@ fi
 DOMAIN=$(echo $1 | tr "[:upper:]" "[:lower:]")
 
 download_wordpress() {
-    curl -s https://wordpress.org/latest.tar.gz |tar -xvz - -C /var/www/
+    curl -s https://wordpress.org/latest.tar.gz |tar -xzf - -C /var/www/
     chown -R www-data:www-data /var/www/wordpress
 }
 
