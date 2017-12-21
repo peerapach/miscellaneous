@@ -116,5 +116,25 @@ EOF
     echo $CONFIG_FILE written
 }
 
+create() {
+# Create the database and user
+# Wordpress's install.php creates the tables btw
+if [ ! $DB_DB ]; then
+    if [ ! $MYSQLUSER ]; then
+        MYSQLCOMMAND="mysql --defaults-extra-file=/etc/mysql/debian.cnf"
+    else
+        MYSQLCOMMAND="mysql -u $DB_USER -p -h $DB_HOST"
+    fi
+    $MYSQLCOMMAND <<EOF
+CREATE DATABASE $NAME;
+GRANT SELECT,INSERT,UPDATE,DELETE,CREATE,DROP,ALTER
+ON $DB_NAME.*
+TO $DB_USER@$DB_HOST
+IDENTIFIED BY '$DB_PASSWORD';
+FLUSH PRIVILEGES;
+EOF
+fi
+
 download_wordpress
 config_wordpress_mysql
+create
