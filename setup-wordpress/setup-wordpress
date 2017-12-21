@@ -135,6 +135,9 @@ FLUSH PRIVILEGES;
 EOF
 fi
 
+    echo Goto http://$DOMAIN to setup Wordpress
+}
+
 download_wordpress
 config_wordpress_mysql
 create
