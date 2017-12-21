@@ -3,10 +3,8 @@
 usage() {
 cat <<EOF
 $0 [-h | -d | -b] [-n NAME | -e DB Name] [-u MySQL user] [-t MySQL host] FQDN
-
 Creates by default a Wordpress mysql configuration depending on required fully
 qualified domain name(FQDN).
-
 Options:
     -n name for the wordpress site; see also -e below
     -h help
@@ -15,13 +13,10 @@ Options:
     -u mysql username, will require password
     -t mysql server hostname, if unset localhost will be used
     -e existing empty mysql database name; will replace -n
-
 Example: You want your blog to be served from http://blog.example.com
          for user 'wordpress'.
-
 Then run:
 sudo bash setup-wordpress -n wordpress blog.example.com
-
 EOF
 }
 
@@ -65,7 +60,7 @@ fi
 DOMAIN=$(echo $1 | tr "[:upper:]" "[:lower:]")
 
 download_wordpress() {
-    curl -s https://wordpress.org/latest.tar.gz |tar -xvzf - -C /var/www/
+    curl -s https://wordpress.org/latest.tar.gz |tar -xvz - -C /var/www/
     chown -R www-data:www-data /var/www/wordpress
 }
 
@@ -109,6 +104,13 @@ define('DB_USER', '$DB_USER');
 define('DB_PASSWORD', '$DB_PASSWORD');
 define('DB_HOST', '$DB_HOST');
 define('SECRET_KEY', '$SECRET_KEY');
+define('WP_DEBUG', false);
+
+\$table_prefix  = 'wp_';
+
+if ( !defined('ABSPATH') )
+	define('ABSPATH', dirname(__FILE__) . '/');
+require_once(ABSPATH . 'wp-settings.php');
 ?>
 EOF
     )
