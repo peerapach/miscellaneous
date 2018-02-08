@@ -82,6 +82,7 @@ Please note that lighttpd is running to serve up the public splash page.
 You may remove it via:
    apt-get -qqy purge lighttpd
    rm -rf /var/wwww
+   systemctl enable gitlab-runsvdir.service
    systemctl start gitlab-runsvdir.service
 
 If you would like to let this script do the work for you, edit/change
