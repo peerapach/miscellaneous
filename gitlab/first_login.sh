@@ -40,7 +40,9 @@ if [[ ! "${yesno^}" =~ "N" ]]; then
     # Remove the landing page...
     echo "Removing the landing page..."
     ( apt-get -qqy purge lighttpd >> /dev/null
-      apt-get -qqy autoremove --purge >> /dev/null) &
+      apt-get -qqy autoremove --purge >> /dev/null
+      systemctl start gitlab-runsvdir.service
+      systemctl enable gitlab-runsvdir.service) &
 
     echo "Running 'gitlab-ctl reconfigure', this will take a minute..."
     (gitlab-ctl reconfigure 2>&1) >  /var/log/gitlab_reconfigure.log
@@ -82,8 +84,6 @@ Please note that lighttpd is running to serve up the public splash page.
 You may remove it via:
    apt-get -qqy purge lighttpd
    rm -rf /var/wwww
-   systemctl enable gitlab-runsvdir.service
-   systemctl start gitlab-runsvdir.service
 
 If you would like to let this script do the work for you, edit/change
 /etc/gitlab/gitlab.rb.digitalocean and then run:
